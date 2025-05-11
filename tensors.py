@@ -117,8 +117,10 @@ print(m2d+n)
 print(m2d/n)
 
 #moreover operations like floor,ceil,round,abs,clamp can also be used
-print(t.sum(n),dim=0)#along columns
-print(t.sum(m2d),dim=1)#alonng row
+print(n.sum(dim=0))  # sum along columns
+print(m2d.sum(dim=1))  # sum along rows
+
+
 
 #also operations like mean ,mediam ,mode,sd can also be found
 
