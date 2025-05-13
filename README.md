@@ -2,7 +2,7 @@
 
 This repository contains daily practice code and concept files from my PyTorch deep learning learning journey during Summer 2025.
 
-## Folder Structure
+## Folder Structure->
 
 - `01_tensors/` – Basics of PyTorch tensors
 - `02_autograd/` – Understanding automatic differentiation
