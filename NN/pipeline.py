@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import torch
 from sklearn.model_selection import  train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -69,13 +70,14 @@ epochs=100
 #Training pipeline 
 #create model=
 model=myfirstPro(X_train_tensor)
-
+losses=[]
 #define for loop epochs
 for i in range(epochs):
     #forward pass
     y_pred=model.forward(X_train_tensor)
     #loss cal
     loss=model.loss(y_pred,y_train_tensor)
+    losses.append(loss.item())
     # Compute gradients without accumulation
     grads = torch.autograd.grad(loss, [model.weight, model.bais])
 
@@ -99,3 +101,9 @@ with torch.no_grad():
     y_pred=(y_pred>0.5).float()
     accuracy=(y_pred==y_test_tensor).float().mean()
     print(f'Accuracy :{accuracy.item():.4f}')
+    
+plt.plot (range(epochs),losses)
+plt.ylabel("Loss/error")
+plt.xlabel('Epoch')
+plt.legend
+plt.show()
