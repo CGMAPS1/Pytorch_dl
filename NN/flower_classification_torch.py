@@ -89,7 +89,7 @@ losses=[]
 
 for i in range(epochs):
   #Go forward and get the prediction
-  y_pred=model.forward(X_train)#get predicted data
+  y_pred=model(X_train)#get predicted data
   
   
   #measure the loss
