@@ -1,0 +1,87 @@
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+
+# -----------------------------
+# Custom Dataset Class
+# -----------------------------
+class MyDataset(Dataset):
+    def __init__(self, dataframe):
+        self.X = torch.tensor(dataframe.drop('target', axis=1).values, dtype=torch.float32)
+        self.y = torch.tensor(dataframe['target'].values, dtype=torch.float32)  # For binary classification
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+
+
+# Define your custom model
+class Model(nn.Module):  # Always inherit from nn.Module
+    def __init__(self, ...):  # Define model architecture here
+        super().__init__()  # Always call the superclass constructor
+        self.layer1 = nn.Linear(input_dim, hidden_dim)
+        self.activation = nn.ReLU()
+        self.layer2 = nn.Linear(hidden_dim, output_dim)
+        # Add more layers or modules as needed
+
+    def forward(self, x):  # Defines the forward pass
+        x = self.layer1(x)
+        x = self.activation(x)
+        x = self.layer2(x)
+        return x
+
+
+
+# -----------------------------
+# Dummy DataFrame (replace with real data)
+# -----------------------------
+# Example: 100 samples, 10 features
+np.random.seed(42)
+df = pd.DataFrame(np.random.rand(100, 10), columns=[f"f{i}" for i in range(10)])
+df['target'] = np.random.randint(0, 2, size=100)
+
+# -----------------------------
+# Create Dataset and DataLoader
+# -----------------------------
+dataset = MyDataset(df)
+dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
+
+
+# -----------------------------
+# Instantiate Model, Loss, Optimizer
+# -----------------------------
+
+import torch.optim as optim
+from sklearn.metrics import accuracy_score, f1_score
+
+model = Model(...)  # your model
+loss_fn = nn.BCELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# -----------------------------
+# Training Loop
+# -----------------------------
+num_epochs = 100(say)
+
+for epoch in range(num_epochs):
+    model.train()
+    all_preds = []
+    all_targets = []
+
+    for X_batch, y_batch in dataloader:
+        optimizer.zero_grad()
+        output = model(X_batch).squeeze()
+        loss = loss_fn(output, y_batch)
+        loss.backward()
+        optimizer.step()
+
+        preds = (output >= 0.5).int()## for binary classification
+        all_preds.extend(preds.cpu().detach().numpy())
+        all_targets.extend(y_batch.cpu().numpy())
+
+    acc = accuracy_score(all_targets, all_preds)
+    f1 = f1_score(all_targets, all_preds)
+    print(f"Epoch {epoch+1} | Loss: {loss.item():.4f} | Acc: {acc:.4f} | F1: {f1:.4f}")
