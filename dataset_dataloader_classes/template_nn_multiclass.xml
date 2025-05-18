@@ -1,0 +1,167 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader,TensorDataset
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.
+import pandas as pd
+import numpy as np
+
+# -----------------------------
+# Custom Dataset
+# -----------------------------
+
+
+#class MyDataset(Dataset):
+#   def __init__(self, dataframe):
+#       self.X = torch.tensor(dataframe.drop('target', axis=1).values, dtype=torch.float32)
+#       self.y = torch.tensor(dataframe['target'].values, dtype=torch.long)  # <- important for CrossEntropyLoss
+#
+#   def __len__(self):
+#      return len(self.X)
+#
+#   def __getitem__(self, idx):
+#       return self.X[idx], self.y[idx]
+
+# -----------------------------
+# Model
+# -----------------------------
+class Model(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        super().__init__()
+        self.layer1 = nn.Linear(input_dim, hidden_dim)
+        self.relu = nn.ReLU()
+        self.layer2 = nn.Linear(hidden_dim, output_dim)  # No softmax!
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.relu(x)
+        x = self.layer2(x)
+        return x  # raw logits
+
+# -----------------------------
+# Dummy Multi-class Data
+# -----------------------------
+# -----------------------------
+num_classes = 3
+np.random.seed(42)
+df = pd.DataFrame(np.random.rand(200, 10), columns=[f"f{i}" for i in range(10)])
+df['target'] = np.random.randint(0, num_classes, size=200)
+
+# -----------------------------
+# Split using sklearn
+# -----------------------------
+
+X = df.drop('target', axis=1).values
+y = df['target'].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# -----------------------------
+# Convert to tensors and loaders
+# -----------------------------
+X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=16, shuffle=True)
+test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=16, shuffle=False)
+
+
+# -----------------------------
+# Setup
+# -----------------------------
+dataset = MyDataset(df)
+dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
+
+model = Model(input_dim=10, hidden_dim=32, output_dim=num_classes)
+loss_fn = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+
+# -----------------------------
+# Training Loop (with mean loss)
+# -----------------------------
+for epoch in range(10):
+    model.train()
+    epoch_loss = 0.0
+    num_batches = 0
+
+    for X_batch, y_batch in train_loader:
+        optimizer.zero_grad()
+        logits = model(X_batch)
+        loss = loss_fn(logits, y_batch)
+        loss.backward()
+        optimizer.step()
+
+        epoch_loss += loss.item()
+        num_batches += 1
+
+    mean_loss = epoch_loss / num_batches
+    print(f"[Epoch {epoch+1}] Mean Training Loss: {mean_loss:.4f}")
+# -----------------------------
+# Final Evaluation
+# -----------------------------
+model.eval()
+test_preds, test_targets = [], []
+with torch.no_grad():
+    for X_batch, y_batch in test_loader:
+        logits = model(X_batch)
+        preds = torch.argmax(logits, dim=1)
+        test_preds.extend(preds.cpu().numpy())
+        test_targets.extend(y_batch.cpu().numpy())
+
+test_acc = accuracy_score(test_targets, test_preds)
+test_f1 = f1_score(test_targets, test_preds, average='macro')
+
+print(f"\n✅ Final Test Accuracy: {test_acc:.4f}")
+print(f"✅ Final Test F1 Score: {test_f1:.4f}")
+
+
+
+
+
+
+'''
+Great catch — in the version of the code I just gave you, I didn’t use a custom MyDataset class. Instead, I directly used:
+
+TensorDataset(X_train_tensor, y_train_tensor)
+This is a built-in PyTorch dataset wrapper that’s useful when your data is already in tensor form.
+
+🔧 So When to Use What?
+✅ 1. When to use TensorDataset:
+Use it when:
+
+Your data is already in torch.tensor format.
+
+You have simple tabular data (like X and y), and don't need any preprocessing or transformations.
+
+Example:
+from torch.utils.data import TensorDataset
+
+dataset = TensorDataset(X_tensor, y_tensor)
+✅ 2. When to use a custom MyDataset class:
+Use it when:
+
+Your data comes from a CSV, image folder, text files, etc.
+You want to apply preprocessing, augmentations, or transformations dynamically inside __getitem__.
+
+
+from torch.utils.data import Dataset
+
+class MyDataset(Dataset):
+    def __init__(self, df):
+        self.X = torch.tensor(df.drop('target', axis=1).values, dtype=torch.float32)
+        self.y = torch.tensor(df['target'].values, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.y)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+# Usage:
+dataset = MyDataset(df)
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+'''
